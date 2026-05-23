@@ -8,7 +8,7 @@ api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=api_key)
 
 # モデルのインスタンス化（プレフィックスなし）
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel(model_name='models/gemini-1.5-flash')
 
 st.title("競艇解析エンジン v7.0")
 

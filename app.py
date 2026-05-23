@@ -6,7 +6,7 @@ import json
 
 # --- 設定 ---
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel(model_name='gemini-1.5-flash')
 
 st.title("競艇勝負ロジック：完全統合エンジン v7.0")
 

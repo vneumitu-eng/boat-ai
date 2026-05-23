@@ -13,7 +13,7 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 # モデル名を明示的に指定
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel(model_name='gemini-1.5-flash')
 
 st.title("競艇勝負ロジック：完全統合エンジン v7.0")
 

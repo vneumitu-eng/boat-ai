@@ -4,57 +4,57 @@ from PIL import Image
 import pandas as pd
 import json
 
-# --- 1. APIキーの設定 (Secretsから読み込み) ---
-# ※設定したGEMINI_API_KEYを安全に呼び出します
-api_key = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=api_key)
+# --- 設定 ---
+genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 model = genai.GenerativeModel('models/gemini-1.5-flash')
 
-st.title("競艇AI：スクショ解析データ入力エンジン")
+st.title("競艇勝負ロジック：完全統合エンジン v7.0")
 
-# --- 2. データの入力方法 ---
-# 画像アップロード
-uploaded_file = st.file_uploader("出走表のスクリーンショットをアップロード", type=["png", "jpg", "jpeg"])
+# --- OCR Engine: スクショ解析 ---
+uploaded_file = st.file_uploader("出走表のスクショをアップロード", type=["png", "jpg", "jpeg"])
+data = None
 
-if uploaded_file is not None:
+if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption='解析中の出走表', use_column_width=True)
-    
-    if st.button("AI解析開始"):
-        with st.spinner('Geminiが画像を解析中...'):
-            prompt = """
-            この競艇の出走表から、以下のデータを抽出し、JSON形式で出力してください。
-            {
-              "grade": "SG/G1/一般",
-              "wind_speed": "風速",
-              "wave_height": "波高",
-              "exhibition_times": [1号艇の展示タイム, 2, 3, 4, 5, 6]
-            }
-            """
+    if st.button("AI解析実行"):
+        with st.spinner('解析中...'):
+            prompt = "この競艇出走表から、grade, wind_speed(m), wave_height(cm), exhibition_times(6個のリスト)をJSONで抽出。"
             response = model.generate_content([prompt, image])
             data = json.loads(response.text.replace('```json', '').replace('```', '').strip())
-            
-            st.success("データ取得完了！")
-            
-            # --- 3. 判定ロジック (統合版) ---
-            st.subheader("解析結果とAI判定")
-            df = pd.DataFrame({"艇番": [1,2,3,4,5,6], "展示タイム": data["exhibition_times"]})
-            st.table(df)
-            
-            # 悪天候チェック
-            if data["wave_height"] and int(data["wave_height"]) >= 5:
-                st.error("【警告】波高が5cm以上のため見送り推奨")
-            
-            # 爆弾足チェック (1号艇との比較)
-            times = [float(t) for t in data["exhibition_times"] if t is not None]
-            if times and (min(times) < float(data["exhibition_times"][0]) - 0.05):
-                st.warning("【警告】1号艇より速い艇が存在します。内枠の壁に注意！")
+            st.session_state.data = data
+            st.success("解析完了")
 
-# --- 4. 手動入力の補助 ---
+# データ保持
+if "data" in st.session_state:
+    data = st.session_state.data
+    st.write(f"解析済み: {data['grade']} / 風速:{data['wind_speed']}m / 波高:{data['wave_height']}cm")
+
+# --- Rule & Risk Engine: 勝負判定 ---
 st.divider()
-st.subheader("手動調整")
-balance = st.number_input("現在の軍資金", value=20000)
-display_odds = st.number_input("3連単本線オッズ", value=5.0)
-if st.button("最終判定"):
-    st.info(f"勝負レース判定：オッズ {display_odds} 倍に対し、仮想オッズで判定を行います。")
+balance = st.number_input("軍資金総額", value=20000)
+odds = st.number_input("3連単本線オッズ", value=5.0)
+is_collapse = st.checkbox("【トリガー】2コース潰れ展開")
+
+if st.button("最終判定 (GO/NO-GO)"):
+    # Risk Engine: 悪魔の代弁者（悪天候チェック）
+    if data and data['wave_height'] and int(data['wave_height']) >= 5:
+        st.error("【Risk】波高5cm以上：運ゲー水面のためケン（見送り）を推奨")
     
+    # Rule Engine: 勝負分類
+    margin = 0.3 if data and data['grade'] == "SG/G1" else 0.8
+    virtual_odds = odds - margin
+    
+    if virtual_odds < 4.0:
+        st.error("【NO-GO】オッズ不足：見送り")
+    else:
+        st.success("【GO】勝負レース")
+        # Odds Engine: 傾斜配分
+        bet_amount = balance * 0.1
+        st.write(f"推奨投資: {bet_amount:.0f}円")
+        
+        # フォーメーション提示
+        bets = ["1-3-2", "1-3-4", "1-3-5", "1-4-2", "1-4-3", "1-4-5"] if is_collapse else ["1-2-3", "1-2-4", "1-2-5", "1-3-2", "1-3-4", "1-3-5"]
+        st.table(pd.DataFrame(bets, columns=["推奨買い目"]))
+        
+        # Risk Engine: 損失警告
+        st.warning(f"全損リスク: 投資額の {int((bet_amount/balance)*100)}% が消失する可能性があります。")

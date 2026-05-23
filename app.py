@@ -8,7 +8,7 @@ import json
 # ※設定したGEMINI_API_KEYを安全に呼び出します
 api_key = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 st.title("競艇AI：スクショ解析データ入力エンジン")
 

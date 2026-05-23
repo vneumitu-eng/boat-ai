@@ -8,7 +8,7 @@ import json
 # APIキーが空でないか確認
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
-    st.error("APIキーが設定されていません。Secretsを確認してください。")
+    st.error("AIzaSyDR1kvsQfueiOSZ9pMBXKIniPwT9FLNpXo")
     st.stop()
 
 genai.configure(api_key=api_key)
